@@ -1,0 +1,4 @@
+def f1(): returns int
+begin
+	return 5;
+end
