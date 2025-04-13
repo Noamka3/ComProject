@@ -162,8 +162,27 @@ extern FILE *yyin, *yyout;
 #define EOB_ACT_END_OF_FILE 1
 #define EOB_ACT_LAST_MATCH 2
     
-    #define YY_LESS_LINENO(n)
-    #define YY_LINENO_REWIND_TO(ptr)
+    /* Note: We specifically omit the test for yy_rule_can_match_eol because it requires
+     *       access to the local variable yy_act. Since yyless() is a macro, it would break
+     *       existing scanners that call yyless() from OUTSIDE yylex.
+     *       One obvious solution it to make yy_act a global. I tried that, and saw
+     *       a 5% performance hit in a non-yylineno scanner, because yy_act is
+     *       normally declared as a register variable-- so it is not worth it.
+     */
+    #define  YY_LESS_LINENO(n) \
+            do { \
+                int yyl;\
+                for ( yyl = n; yyl < yyleng; ++yyl )\
+                    if ( yytext[yyl] == '\n' )\
+                        --yylineno;\
+            }while(0)
+    #define YY_LINENO_REWIND_TO(dst) \
+            do {\
+                const char *p;\
+                for ( p = yy_cp-1; p >= (dst); --p)\
+                    if ( *p == '\n' )\
+                        --yylineno;\
+            }while(0)
     
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
@@ -354,8 +373,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 54
-#define YY_END_OF_BUFFER 55
+#define YY_NUM_RULES 53
+#define YY_END_OF_BUFFER 54
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -365,20 +384,20 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[129] =
     {   0,
-        0,    0,   55,   53,   51,   51,   53,   53,   53,   39,
-       53,   44,   45,   37,   35,   42,   36,   38,   47,   43,
-       41,   32,   34,   33,   46,   46,   46,   46,   46,   46,
-       46,   46,   46,   46,   46,   46,   46,   46,   46,   46,
-       51,   29,    0,   50,    0,    0,    0,   47,   30,   28,
-       31,   46,   46,   46,   46,   46,   46,   46,   46,   46,
-        9,   46,   46,   46,    4,   46,   46,   46,   26,   46,
-       46,   46,   46,    0,   49,   48,   46,   46,   25,   46,
-       46,   46,   46,    1,   46,   46,   12,    8,   17,   27,
-       46,   46,   46,   46,   10,   46,    0,    0,    0,   46,
+        0,    0,   54,   52,   50,   50,   52,   52,   52,   39,
+       52,   43,   44,   37,   35,   41,   36,   38,   46,   42,
+       40,   32,   34,   33,   45,   45,   45,   45,   45,   45,
+       45,   45,   45,   45,   45,   45,   45,   45,   45,   45,
+       50,   29,    0,   49,    0,    0,    0,   46,   30,   28,
+       31,   45,   45,   45,   45,   45,   45,   45,   45,   45,
+        9,   45,   45,   45,    4,   45,   45,   45,   26,   45,
+       45,   45,   45,    0,   48,   47,   45,   45,   25,   45,
+       45,   45,   45,    1,   45,   45,   12,    8,   17,   27,
+       45,   45,   45,   45,   10,   45,    0,    0,    0,   45,
 
-       15,   46,   20,   13,   19,    6,    5,   22,   14,   18,
-       46,   46,   46,    0,    0,   48,   16,   11,   24,   23,
-       46,   46,    7,   52,    3,   21,    2,    0
+       15,   45,   20,   13,   19,    6,    5,   22,   14,   18,
+       45,   45,   45,    0,    0,   47,   16,   11,   24,   23,
+       45,   45,    7,   51,    3,   21,    2,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -517,6 +536,13 @@ static const flex_int16_t yy_chk[212] =
       128
     } ;
 
+/* Table of booleans, true if rule could match eol. */
+static const flex_int32_t yy_rule_can_match_eol[54] =
+    {   0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,     };
+
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
 
@@ -540,8 +566,8 @@ char *yytext;
 #include "parser.tab.h"
 
 extern YYSTYPE yylval;
-#line 544 "lex.yy.c"
-#line 545 "lex.yy.c"
+#line 570 "lex.yy.c"
+#line 571 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -761,7 +787,7 @@ YY_DECL
 #line 18 "scanner.l"
 
 
-#line 765 "lex.yy.c"
+#line 791 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -806,6 +832,16 @@ yy_find_action:
 			}
 
 		YY_DO_BEFORE_ACTION;
+
+		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
+			{
+			int yyl;
+			for ( yyl = 0; yyl < yyleng; ++yyl )
+				if ( yytext[yyl] == '\n' )
+					
+    yylineno++;
+;
+			}
 
 do_action:	/* This label is used only to access EOF actions. */
 
@@ -1015,82 +1051,77 @@ YY_RULE_SETUP
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 62 "scanner.l"
-{ return DEREF; }
+#line 63 "scanner.l"
+{ return ';'; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
 #line 64 "scanner.l"
-{ return ';'; }
+{ return ','; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
 #line 65 "scanner.l"
-{ return ','; }
+{ return ':'; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
 #line 66 "scanner.l"
-{ return ':'; }
+{ return '('; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
 #line 67 "scanner.l"
-{ return '('; }
+{ return ')'; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 68 "scanner.l"
-{ return ')'; }
+#line 69 "scanner.l"
+{ yylval.str = strdup(yytext); return IDENTIFIER; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
 #line 70 "scanner.l"
-{ yylval.str = strdup(yytext); return IDENTIFIER; }
+{ yylval.str = strdup(yytext); return INT_LITERAL; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
 #line 71 "scanner.l"
-{ yylval.str = strdup(yytext); return INT_LITERAL; }
+{ yylval.str = strdup(yytext); return REAL_LITERAL; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
 #line 72 "scanner.l"
-{ yylval.str = strdup(yytext); return REAL_LITERAL; }
+{ yylval.str = strdup(yytext); return CHAR_LITERAL; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
 #line 73 "scanner.l"
-{ yylval.str = strdup(yytext); return CHAR_LITERAL; }
+{ yylval.str = strdup(yytext); return STRING_LITERAL; }
 	YY_BREAK
 case 50:
+/* rule 50 can match eol */
 YY_RULE_SETUP
-#line 74 "scanner.l"
-{ yylval.str = strdup(yytext); return STRING_LITERAL; }
+#line 75 "scanner.l"
+{ /* ignore whitespace */ }
 	YY_BREAK
 case 51:
 /* rule 51 can match eol */
 YY_RULE_SETUP
-#line 76 "scanner.l"
-{ /* ignore whitespace */ }
+#line 77 "scanner.l"
+{ /* ignore comment */ }
 	YY_BREAK
 case 52:
-/* rule 52 can match eol */
 YY_RULE_SETUP
-#line 78 "scanner.l"
-{ /* ignore comment */ }
+#line 79 "scanner.l"
+{ printf("Unknown character: %s\n", yytext); exit(1); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 80 "scanner.l"
-{ printf("Unknown character: %s\n", yytext); exit(1); }
-	YY_BREAK
-case 54:
-YY_RULE_SETUP
-#line 82 "scanner.l"
+#line 81 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1094 "lex.yy.c"
+#line 1125 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1458,6 +1489,10 @@ static int yy_get_next_buffer (void)
 
 	*--yy_cp = (char) c;
 
+    if ( c == '\n' ){
+        --yylineno;
+    }
+
 	(yytext_ptr) = yy_bp;
 	(yy_hold_char) = *yy_cp;
 	(yy_c_buf_p) = yy_cp;
@@ -1534,6 +1569,11 @@ static int yy_get_next_buffer (void)
 	c = *(unsigned char *) (yy_c_buf_p);	/* cast for 8-bit char's */
 	*(yy_c_buf_p) = '\0';	/* preserve yytext */
 	(yy_hold_char) = *++(yy_c_buf_p);
+
+	if ( c == '\n' )
+		
+    yylineno++;
+;
 
 	return c;
 }
@@ -2001,6 +2041,9 @@ static int yy_init_globals (void)
      * This function is called from yylex_destroy(), so don't allocate here.
      */
 
+    /* We do not touch yylineno unless the option is enabled. */
+    yylineno =  1;
+    
     (yy_buffer_stack) = NULL;
     (yy_buffer_stack_top) = 0;
     (yy_buffer_stack_max) = 0;
@@ -2095,8 +2138,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 82 "scanner.l"
-
-
+#line 81 "scanner.l"
 
 

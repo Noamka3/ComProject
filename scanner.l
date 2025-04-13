@@ -9,11 +9,11 @@ extern YYSTYPE yylval;
 %}
 
 %option noyywrap
+%option yylineno
 
 DIGIT       [0-9]
 LETTER      [a-zA-Z]
 ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)* 
-
 
 %%
 
@@ -59,7 +59,6 @@ ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 "*"             { return MUL; }
 "/"             { return DIV; }
 "&"             { return ADDR; }
-"*"             { return DEREF; }
 
 ";"             { return ';'; }
 ","             { return ','; }
@@ -80,5 +79,3 @@ ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 .               { printf("Unknown character: %s\n", yytext); exit(1); }
 
 %%
-
-

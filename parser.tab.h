@@ -98,7 +98,8 @@ extern int yydebug;
     INT_LITERAL = 299,             /* INT_LITERAL  */
     REAL_LITERAL = 300,            /* REAL_LITERAL  */
     CHAR_LITERAL = 301,            /* CHAR_LITERAL  */
-    STRING_LITERAL = 302           /* STRING_LITERAL  */
+    STRING_LITERAL = 302,          /* STRING_LITERAL  */
+    LOWER_THAN_ELSE = 303          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -112,7 +113,7 @@ union YYSTYPE
     char* str;
     Node* node;
 
-#line 116 "parser.tab.h"
+#line 117 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

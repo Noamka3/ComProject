@@ -25,14 +25,16 @@ Node* create_node(char* name, int child_count, ...) {
     return node;
 }
 
+// Special print function to match exactly the expected format
 void print_ast(Node* node, int depth) {
     if (!node)
         return;
 
-    // הזחה לפי עומק
+    // Print indentation
     for (int i = 0; i < depth; i++)
         printf("  ");
 
+    // Print the node name
     printf("(%s", node->name);
 
     if (node->child_count == 0) {
@@ -42,12 +44,12 @@ void print_ast(Node* node, int depth) {
 
     printf("\n");
 
-    // הדפסת כל הילדים
+    // Print all children
     for (int i = 0; i < node->child_count; i++) {
         print_ast(node->children[i], depth + 1);
     }
 
-    // סגירת הסוגריים
+    // Close the parenthesis
     for (int i = 0; i < depth; i++)
         printf("  ");
     

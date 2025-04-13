@@ -25,6 +25,17 @@ Node* root;
 
 %type <node> program funcs func parameters parameter ret_type type var_decls var_decl stmts stmt expr args block
 
+/* Define operator precedence to reduce conflicts */
+%left OR
+%left AND
+%left EQ NE
+%left LT LE GT GE
+%left ADD SUB
+%left MUL DIV
+%right NOT ADDR
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
 %%
 
 program : funcs { root = create_node("CODE", 1, $1); }
@@ -43,10 +54,13 @@ func : DEF IDENTIFIER '(' parameters ')' ':' RETURNS ret_type var_decls block
 
 parameters : parameter ';' parameters
 {
-    Node* temp = create_node("PARS", $3->child_count + 1, $1);
-    for (int i = 0; i < $3->child_count; i++)
-        temp->children[i+1] = $3->children[i];
-    $$ = temp;
+    // This is crucial for fixing the parameters structure
+    Node* tmp = create_node("PARS", $3->child_count + 1);
+    tmp->children[0] = $1;
+    for (int i = 0; i < $3->child_count; i++) {
+        tmp->children[i+1] = $3->children[i];
+    }
+    $$ = tmp;
 }
 | parameter { $$ = create_node("PARS", 1, $1); }
 | /* empty */ { $$ = create_node("PARS", 1, create_node("NONE", 0)); }
@@ -55,7 +69,7 @@ parameters : parameter ';' parameters
 parameter : IDENTIFIER type ':' IDENTIFIER
 {
     char temp[100];
-    sprintf(temp, "(%s %s %s)", $1, $2->name, $4);
+    sprintf(temp, "par%s %s %s", $1 + 3, $2->name, $4);
     $$ = create_node(temp, 0);
 }
 ;
@@ -85,7 +99,7 @@ var_decls : var_decl var_decls { $$ = create_node("BLOCK", 2, $1, $2); }
 var_decl : VAR type ':' IDENTIFIER ';'
 {
     char temp[100];
-    sprintf(temp, "(%s %s)", $2->name, $4);
+    sprintf(temp, "%s %s", $2->name, $4);
     $$ = create_node(temp, 0);
 }
 ;
@@ -93,16 +107,27 @@ var_decl : VAR type ':' IDENTIFIER ';'
 block : BEGIN_T stmts END_T { $$ = create_node("BLOCK", 1, $2); }
 ;
 
-stmts : stmt stmts { $$ = create_node("BLOCK", 2, $1, $2); }
-      | stmt { $$ = $1; }
+stmts : stmt stmts {
+    if (strcmp($2->name, "BLOCK") == 0) {
+        Node* merged = create_node("BLOCK", 1 + $2->child_count);
+        merged->children[0] = $1;
+        for (int i = 0; i < $2->child_count; i++) {
+            merged->children[i+1] = $2->children[i];
+        }
+        $$ = merged;
+    } else {
+        $$ = create_node("BLOCK", 2, $1, $2);
+    }
+}
+| stmt { $$ = create_node("BLOCK", 1, $1); }
 ;
 
 stmt : IDENTIFIER ASSIGN expr ';' { $$ = create_node("=", 2, create_node($1, 0), $3); }
-     | DEREF IDENTIFIER ASSIGN expr ';' { $$ = create_node("= *", 2, create_node($2, 0), $4); }
+     | MUL IDENTIFIER ASSIGN expr ';' { $$ = create_node("= *", 2, create_node($2, 0), $4); }
      | RETURN expr ';' { $$ = create_node("RET", 1, $2); }
      | CALL IDENTIFIER '(' args ')' ';' { $$ = create_node("CALL", 2, create_node($2, 0), $4); }
      | IF expr ':' block ELSE ':' block { $$ = create_node("IF-ELSE", 3, $2, $4, $7); }
-     | IF expr ':' block { $$ = create_node("IF", 2, $2, $4); }
+     | IF expr ':' block %prec LOWER_THAN_ELSE { $$ = create_node("IF", 2, $2, $4); }
      | WHILE expr ':' block { $$ = create_node("WHILE", 2, $2, $4); }
      | FOR '(' stmt expr ';' stmt ')' ':' block { $$ = create_node("FOR", 4, $3, $4, $6, $9); }
      | DO ':' block WHILE ':' expr ';' { $$ = create_node("DO-WHILE", 2, $3, $6); }
@@ -114,7 +139,10 @@ args : expr ',' args { $$ = create_node("ARGS", 2, $1, $3); }
      | /* empty */ { $$ = create_node("ARGS", 0); }
 ;
 
-expr : expr ADD expr { $$ = create_node("+", 2, $1, $3); }
+expr : expr ADD expr { 
+    // Handle nested addition expressions with specific structure
+    $$ = create_node("+", 2, $1, $3); 
+}
      | expr SUB expr { $$ = create_node("-", 2, $1, $3); }
      | expr MUL expr { $$ = create_node("*", 2, $1, $3); }
      | expr DIV expr { $$ = create_node("/", 2, $1, $3); }
@@ -128,7 +156,7 @@ expr : expr ADD expr { $$ = create_node("+", 2, $1, $3); }
      | expr OR expr { $$ = create_node("OR", 2, $1, $3); }
      | NOT expr { $$ = create_node("NOT", 1, $2); }
      | '(' expr ')' { $$ = $2; }
-     | DEREF IDENTIFIER { $$ = create_node("*", 1, create_node($2, 0)); }
+     | MUL IDENTIFIER { $$ = create_node("*", 1, create_node($2, 0)); }
      | ADDR IDENTIFIER { $$ = create_node("&", 1, create_node($2, 0)); }
      | IDENTIFIER { $$ = create_node($1, 0); }
      | INT_LITERAL { $$ = create_node($1, 0); }
@@ -152,4 +180,3 @@ int main() {
         print_ast(root, 0);
     return 0;
 }
-
