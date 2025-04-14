@@ -41,29 +41,43 @@ Node* root;
 program : funcs { root = create_node("CODE", 1, $1); }
 ;
 
-funcs : func funcs { $$ = create_node("FUNC", 2, $1, $2); }
-      | /* empty */ { $$ = create_node("FUNC", 0); }
+funcs : func { $$ = $1; }
+      | func funcs { $$ = create_node("FUNC", 2, $1, $2); }
+      | /* empty */ { $$ = NULL; }
 ;
 
 func : DEF IDENTIFIER '(' parameters ')' ':' RETURNS ret_type var_decls block
-{ $$ = create_node($2, 4, $4, create_node("RET", 1, $8), create_node("BODY", 1, $10), $9); }
+{
+    $$ = create_node($2, 4, 
+                    $4,                   // parameters 
+                    create_node("RET", 1, $8),  // return type
+                    $9,                   // var declarations 
+                    create_node("BODY", 1, $10)); // function body
+}
 | DEF IDENTIFIER '(' parameters ')' ':' var_decls block
-{ $$ = create_node($2, 4, $4, create_node("RET", 1, create_node("NONE", 0)), create_node("BODY", 1, $8), $7); }
+{
+    $$ = create_node($2, 4,
+                    $4,                   // parameters
+                    create_node("RET NONE", 0), // no return type
+                    $7,                   // var declarations
+                    create_node("BODY", 1, $8)); // function body
+}
 ;
-
 
 parameters : parameter ';' parameters
 {
-    // This is crucial for fixing the parameters structure
-    Node* tmp = create_node("PARS", $3->child_count + 1);
-    tmp->children[0] = $1;
+    // Create a new PARS node with parameter as first child
+    Node* pars = create_node("PARS", $3->child_count + 1);
+    pars->children[0] = $1;
+    
+    // Copy the rest of the parameters
     for (int i = 0; i < $3->child_count; i++) {
-        tmp->children[i+1] = $3->children[i];
+        pars->children[i+1] = $3->children[i];
     }
-    $$ = tmp;
+    $$ = pars;
 }
 | parameter { $$ = create_node("PARS", 1, $1); }
-| /* empty */ { $$ = create_node("PARS", 1, create_node("NONE", 0)); }
+| /* empty */ { $$ = create_node("PARS NONE", 0); }
 ;
 
 parameter : IDENTIFIER type ':' IDENTIFIER
@@ -104,27 +118,38 @@ var_decl : VAR type ':' IDENTIFIER ';'
 }
 ;
 
-block : BEGIN_T stmts END_T { $$ = create_node("BLOCK", 1, $2); }
+block : BEGIN_T stmts END_T { $$ = $2; }
+      | BEGIN_T END_T { $$ = create_node("BLOCK", 0); }  /* Handle empty block explicitly */
 ;
 
-stmts : stmt stmts {
-    if (strcmp($2->name, "BLOCK") == 0) {
-        Node* merged = create_node("BLOCK", 1 + $2->child_count);
-        merged->children[0] = $1;
-        for (int i = 0; i < $2->child_count; i++) {
-            merged->children[i+1] = $2->children[i];
-        }
-        $$ = merged;
-    } else {
-        $$ = create_node("BLOCK", 2, $1, $2);
-    }
-}
-| stmt { $$ = create_node("BLOCK", 1, $1); }
+stmts : stmt { $$ = $1; }
+      | stmt stmts 
+      {
+          if (strcmp($2->name, "BLOCK") == 0) {
+              // Merge with existing BLOCK
+              Node* merged = create_node("BLOCK", 1 + $2->child_count);
+              merged->children[0] = $1;
+              for (int i = 0; i < $2->child_count; i++) {
+                  merged->children[i+1] = $2->children[i];
+              }
+              $$ = merged;
+          } else {
+              $$ = create_node("BLOCK", 2, $1, $2);
+          }
+      }
 ;
 
 stmt : IDENTIFIER ASSIGN expr ';' { $$ = create_node("=", 2, create_node($1, 0), $3); }
      | MUL IDENTIFIER ASSIGN expr ';' { $$ = create_node("= *", 2, create_node($2, 0), $4); }
-     | RETURN expr ';' { $$ = create_node("RET", 1, $2); }
+     | RETURN expr ';' { 
+         if ($2->child_count == 0) {
+             char temp[100];
+             sprintf(temp, "RET %s", $2->name);
+             $$ = create_node(temp, 0);
+         } else {
+             $$ = create_node("RET", 1, $2);
+         }
+     }
      | CALL IDENTIFIER '(' args ')' ';' { $$ = create_node("CALL", 2, create_node($2, 0), $4); }
      | IF expr ':' block ELSE ':' block { $$ = create_node("IF-ELSE", 3, $2, $4, $7); }
      | IF expr ':' block %prec LOWER_THAN_ELSE { $$ = create_node("IF", 2, $2, $4); }
@@ -134,15 +159,12 @@ stmt : IDENTIFIER ASSIGN expr ';' { $$ = create_node("=", 2, create_node($1, 0),
      | block { $$ = $1; }
 ;
 
-args : expr ',' args { $$ = create_node("ARGS", 2, $1, $3); }
-     | expr { $$ = create_node("ARGS", 1, $1); }
-     | /* empty */ { $$ = create_node("ARGS", 0); }
+args : expr { $$ = create_node("ARGS", 1, $1); }
+     | expr ',' args { $$ = create_node("ARGS", 2, $1, $3); }
+     | /* empty */ { $$ = create_node("ARGS NONE", 0); }
 ;
 
-expr : expr ADD expr { 
-    // Handle nested addition expressions with specific structure
-    $$ = create_node("+", 2, $1, $3); 
-}
+expr : expr ADD expr { $$ = create_node("+", 2, $1, $3); }
      | expr SUB expr { $$ = create_node("-", 2, $1, $3); }
      | expr MUL expr { $$ = create_node("*", 2, $1, $3); }
      | expr DIV expr { $$ = create_node("/", 2, $1, $3); }
