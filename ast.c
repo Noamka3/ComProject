@@ -25,23 +25,81 @@ Node* create_node(char* name, int child_count, ...) {
     return node;
 }
 
+// Function to print a function node without parentheses around the function name
+void print_function_node(Node* node, int depth) {
+    if (!node) return;
+    
+    // Print the function name without parentheses
+    for (int i = 0; i < depth; i++)
+        printf("  ");
+    printf("%s\n", node->name);
+    
+    // Print all children
+    for (int i = 0; i < node->child_count; i++) {
+        print_ast(node->children[i], depth + 1);
+    }
+}
+
+// Function to extract functions from the FUNC node
+void print_functions(Node* func_node, int depth) {
+    if (!func_node || func_node->child_count == 0)
+        return;
+    
+    // Print the first function
+    if (func_node->child_count >= 1) {
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        printf("(FUNC\n");
+        
+        // Print the function name WITHOUT parentheses and its content
+        print_function_node(func_node->children[0], depth + 1);
+        
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        printf(")\n");
+    }
+    
+    // Check if there's a second child that's a FUNC node
+    if (func_node->child_count >= 2 && strcmp(func_node->children[1]->name, "FUNC") == 0) {
+        print_functions(func_node->children[1], depth);
+    }
+    // If second child is a regular function
+    else if (func_node->child_count >= 2) {
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        printf("(FUNC\n");
+        
+        print_function_node(func_node->children[1], depth + 1);
+        
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        printf(")\n");
+    }
+}
+
 void print_ast(Node* node, int depth) {
     if (!node)
         return;
     
-    // Print indentation
-    for (int i = 0; i < depth; i++)
-        printf("  ");
-    
-    // Print the node name
-    printf("(%s", node->name);
-    
-    if (node->child_count == 0) {
+    // Special case for CODE node
+    if (strcmp(node->name, "CODE") == 0) {
+        printf("(CODE\n");
+        
+        if (node->child_count > 0 && strcmp(node->children[0]->name, "FUNC") == 0) {
+            // Handle FUNC node specially
+            print_functions(node->children[0], 1);
+        } else {
+            // Print regular children
+            for (int i = 0; i < node->child_count; i++) {
+                print_ast(node->children[i], depth + 1);
+            }
+        }
+        
         printf(")\n");
         return;
     }
     
-    // Special case for operators like +, -, *, /, >, <, etc.
+    // Special case for operators like +, -, *, etc.
     if (node->child_count == 2 && (
         strcmp(node->name, "+") == 0 || 
         strcmp(node->name, "-") == 0 ||
@@ -54,18 +112,18 @@ void print_ast(Node* node, int depth) {
         strcmp(node->name, "==") == 0 ||
         strcmp(node->name, "!=") == 0 ||
         strcmp(node->name, "AND") == 0 ||
-        strcmp(node->name, "OR") == 0 ||
-        strcmp(node->name, "=") == 0)) {
+        strcmp(node->name, "OR") == 0)) {
         
-        // Case where both operands are simple nodes
+        // Print indentation
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        
         if (node->children[0]->child_count == 0 && node->children[1]->child_count == 0) {
-            printf(" %s %s)\n", node->children[0]->name, node->children[1]->name);
-            return;
-        }
-        
-        // Case where left operand is a nested expression but right is simple
-        if (node->children[1]->child_count == 0) {
-            printf("\n");
+            // Both operands are simple
+            printf("(%s %s %s)\n", node->name, node->children[0]->name, node->children[1]->name);
+        } else if (node->children[1]->child_count == 0) {
+            // First operand is complex, second is simple
+            printf("(%s\n", node->name);
             print_ast(node->children[0], depth + 1);
             for (int i = 0; i < depth + 1; i++)
                 printf("  ");
@@ -73,15 +131,26 @@ void print_ast(Node* node, int depth) {
             for (int i = 0; i < depth; i++)
                 printf("  ");
             printf(")\n");
-            return;
+        } else {
+            // Both operands are complex or other cases
+            printf("(%s\n", node->name);
+            for (int i = 0; i < node->child_count; i++) {
+                print_ast(node->children[i], depth + 1);
+            }
+            for (int i = 0; i < depth; i++)
+                printf("  ");
+            printf(")\n");
         }
+        return;
     }
     
-    // Special case for assignment and other binary operators with one simple operand
-    if (node->child_count == 2 && 
-        strcmp(node->name, "=") == 0 && 
-        node->children[0]->child_count == 0) {
-        printf(" %s\n", node->children[0]->name);
+    // Special case for assignment
+    if (node->child_count == 2 && strcmp(node->name, "=") == 0 && node->children[0]->child_count == 0) {
+        // Print indentation
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        
+        printf("(= %s\n", node->children[0]->name);
         print_ast(node->children[1], depth + 1);
         for (int i = 0; i < depth; i++)
             printf("  ");
@@ -91,8 +160,23 @@ void print_ast(Node* node, int depth) {
     
     // Special case for RET with single simple operand
     if (node->child_count == 1 && node->children[0]->child_count == 0 && 
-        (strcmp(node->name, "RET") == 0 || strcmp(node->name, "ARGS") == 0)) {
-        printf(" %s)\n", node->children[0]->name);
+        strcmp(node->name, "RET") == 0) {
+        // Print indentation
+        for (int i = 0; i < depth; i++)
+            printf("  ");
+        
+        printf("(RET %s)\n", node->children[0]->name);
+        return;
+    }
+    
+    // Regular node printing with indentation
+    for (int i = 0; i < depth; i++)
+        printf("  ");
+    
+    printf("(%s", node->name);
+    
+    if (node->child_count == 0) {
+        printf(")\n");
         return;
     }
     
@@ -103,7 +187,7 @@ void print_ast(Node* node, int depth) {
         print_ast(node->children[i], depth + 1);
     }
     
-    // Close the parenthesis
+    // Close the node with indentation
     for (int i = 0; i < depth; i++)
         printf("  ");
     

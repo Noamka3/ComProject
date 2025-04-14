@@ -42,7 +42,9 @@ program : funcs { root = create_node("CODE", 1, $1); }
 ;
 
 funcs : func { $$ = $1; }
-      | func funcs { $$ = create_node("FUNC", 2, $1, $2); }
+      | func funcs { 
+          $$ = create_node("FUNC", 2, $1, $2);
+      }
       | /* empty */ { $$ = NULL; }
 ;
 
