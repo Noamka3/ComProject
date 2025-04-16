@@ -80,6 +80,10 @@ void print_functions(Node* func_node, int depth) {
 void print_ast(Node* node, int depth) {
     if (!node)
         return;
+        
+    if (strcmp(node->name, "BLOCK") == 0 && node->child_count == 0)
+        return;
+
     
     // Special case for CODE node
     if (strcmp(node->name, "CODE") == 0) {

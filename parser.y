@@ -48,31 +48,43 @@ funcs : func { $$ = $1; }
       | /* empty */ { $$ = NULL; }
 ;
 
-func : DEF IDENTIFIER '(' parameters ')' ':' RETURNS ret_type var_decls block
+func 
+  : DEF IDENTIFIER '(' parameters ')' ':' RETURNS ret_type var_decls block
 {
-    $$ = create_node($2, 4, 
-                    $4,                   // parameters 
-                    create_node("RET", 1, $8),  // return type
-                    $9,                   // var declarations 
-                    create_node("BODY", 1, $10)); // function body
+    Node* ret = create_node("RET", 1, $8);
+    Node* body;
+
+    if (strcmp($10->name, "BLOCK") == 0 && $10->child_count == 1)
+        body = create_node("BODY", 1, $10->children[0]);
+    else
+        body = create_node("BODY", 1, $10);
+
+    if ($9->child_count == 0)
+        $$ = create_node($2, 3, $4, ret, body);
+    else
+        $$ = create_node($2, 4, $4, ret, $9, body);
 }
 | DEF IDENTIFIER '(' parameters ')' ':' var_decls block
 {
-    $$ = create_node($2, 4,
-                    $4,                   // parameters
-                    create_node("RET NONE", 0), // no return type
-                    $7,                   // var declarations
-                    create_node("BODY", 1, $8)); // function body
+    Node* ret = create_node("RET NONE", 0);
+    Node* body;
+
+    if (strcmp($8->name, "BLOCK") == 0 && $8->child_count == 1)
+        body = create_node("BODY", 1, $8->children[0]);
+    else
+        body = create_node("BODY", 1, $8);
+
+    if ($7->child_count == 0)
+        $$ = create_node($2, 3, $4, ret, body);
+    else
+        $$ = create_node($2, 4, $4, ret, $7, body);
 }
 ;
 
 parameters : parameter ';' parameters
 {
-    // Create a new PARS node with parameter as first child
     Node* pars = create_node("PARS", $3->child_count + 1);
     pars->children[0] = $1;
-    
-    // Copy the rest of the parameters
     for (int i = 0; i < $3->child_count; i++) {
         pars->children[i+1] = $3->children[i];
     }
@@ -120,26 +132,33 @@ var_decl : VAR type ':' IDENTIFIER ';'
 }
 ;
 
-block : BEGIN_T stmts END_T { $$ = $2; }
-      | BEGIN_T END_T { $$ = create_node("BLOCK", 0); }  /* Handle empty block explicitly */
+block 
+  : BEGIN_T stmts END_T 
+    {
+      if (strcmp($2->name, "BLOCK") == 0)
+          $$ = $2;
+      else
+          $$ = create_node("BLOCK", 1, $2);
+    }
+  | BEGIN_T END_T 
+    { $$ = create_node("BLOCK", 0); }
 ;
 
-stmts : stmt { $$ = $1; }
-      | stmt stmts 
-      {
-          if (strcmp($2->name, "BLOCK") == 0) {
-              // Merge with existing BLOCK
-              Node* merged = create_node("BLOCK", 1 + $2->child_count);
-              merged->children[0] = $1;
-              for (int i = 0; i < $2->child_count; i++) {
-                  merged->children[i+1] = $2->children[i];
-              }
-              $$ = merged;
-          } else {
-              $$ = create_node("BLOCK", 2, $1, $2);
-          }
-      }
+stmts 
+  : stmt                       { $$ = $1; }
+  | stmt stmts                {
+        if (strcmp($2->name, "BLOCK") == 0) {
+            Node* merged = create_node("BLOCK", 1 + $2->child_count);
+            merged->children[0] = $1;
+            for (int i = 0; i < $2->child_count; i++)
+                merged->children[i+1] = $2->children[i];
+            $$ = merged;
+        } else {
+            $$ = create_node("BLOCK", 2, $1, $2);
+        }
+  }
 ;
+
 
 stmt : IDENTIFIER ASSIGN expr ';' { $$ = create_node("=", 2, create_node($1, 0), $3); }
      | MUL IDENTIFIER ASSIGN expr ';' { $$ = create_node("= *", 2, create_node($2, 0), $4); }
@@ -204,3 +223,4 @@ int main() {
         print_ast(root, 0);
     return 0;
 }
+
