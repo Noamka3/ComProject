@@ -1,70 +1,85 @@
 %{
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include "parser.h">
+#include <stdlib.h>
+#include <string.h>
+#include "parser.h"
 #include "parser.tab.h"
+
+extern YYSTYPE yylval;
 %}
 
 %option noyywrap
+%option yylineno
+
+DIGIT       [0-9]
+LETTER      [a-zA-Z]
+ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)* 
 
 %%
-"def"       { return DEF; }
-"returns"   { return RETURNS; }
-"begin"     { return BEGIN_BLOCK; }
-"end"       { return END; }
-"var"       { return VAR; }
-"return"    { return RETURN; }
-"if"        { return IF; }
-"else"      { return ELSE; }
-"elif"      { return ELIF; }
-"while"     { return WHILE; }
-"do"        { return DO; }
-"for"       { return FOR; }
-"call"      { return CALL; }
-"bool"      { yylval.str = strdup("bool"); return TYPE; }
-"TRUE"      { yylval.str = strdup("true"); return BOOL_LITERAL; }
-"FALSE"     { yylval.str = strdup("false"); return BOOL_LITERAL; }
-"int"       { yylval.str = strdup("int"); return TYPE; }
-"char"      { yylval.str = strdup("char"); return TYPE; }
-"real"      { yylval.str = strdup("real"); return TYPE; }
-"string"    { yylval.str = strdup("string"); return TYPE; }
-"int*"      { yylval.str = strdup("int*"); return INT_PTR; }
-"char*"     { yylval.str = strdup("char*"); return CHAR_PTR; }
-"real*"     { yylval.str = strdup("real*"); return REAL_PTR; }
-"null"      { return NULLPTR; }
-"void"      { yylval.str = strdup("void"); return VOID; }
-[ \t\n]+    ;
-"#->"([^<]|<[^-])*"<-#"  ;
-"=="        { return EQ; }
-"!="        { return NEQ; }
-">="        { return GTE; }
-"<="        { return LTE; }
-">"         { return GT; }
-"<"         { return LT; }
-"="         { return ASSIGN; }
-";"         { return SEMICOLON; }
-","         { return COMMA; }
-":"         { return COLON; }
-"("         { return LPAREN; }
-")"         { return RPAREN; }
-"["         { return LBRACKET; }
-"]"         { return RBRACKET; }
-"+"         { return PLUS; }
-"-"         { return MINUS; }
-"*"         { return MULT; }
-"/"         { return DIV; }
-"&"         { return AMP; }
-"|"         { return BAR; }
-"not"       { return NOT; }
-"and"       { return AND; }
-"or"        { return OR; }
-[0-9]+                           { yylval.str = strdup(yytext); return INT_LITERAL; }
-0[xX][0-9A-Fa-f]+                { yylval.str = strdup(yytext); return INT_LITERAL; }
-[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)? { yylval.str = strdup(yytext); return REAL_LITERAL; }
-[a-zA-Z_][a-zA-Z0-9_]*           { yylval.str = strdup(yytext); return IDENTIFIER; }
-\'[^\']\'                        { yylval.str = strdup(yytext); return CHAR_LITERAL; }
-\"[^\"]*\"                       { yylval.str = strdup(yytext); return STRING_LITERAL; }
-.                                { printf("Unrecognized character: %s\n", yytext); return 0; }
-%%
 
+"def"           { return DEF; }
+"returns"       { return RETURNS; }
+"return"        { return RETURN; }
+"if"            { return IF; }
+"else"          { return ELSE; }
+"elif"          { return ELIF; }
+"while"         { return WHILE; }
+"for"           { return FOR; }
+"do"            { return DO; }
+"var"           { return VAR; }
+"type"          { return TYPE; }
+"begin"         { return BEGIN_T; }
+"end"           { return END_T; }
+"call"          { return CALL; }
+"null"          { return NULL_T; }
+"TRUE"          { return TRUE; }
+"FALSE"         { return FALSE; }
+
+"int"           { return INT; }
+"real"          { return REAL; }
+"char"          { return CHAR; }
+"bool"          { return BOOL; }
+"string"        { return STRING; }
+"int*"          { return INT_PTR; }
+"real*"         { return REAL_PTR; }
+"char*"         { return CHAR_PTR; }
+
+"and"           { return AND; }
+"or"            { return OR; }
+"not"           { return NOT; }
+
+"=="            { return EQ; }
+"!="            { return NE; }
+"<="            { return LE; }
+">="            { return GE; }
+"<"             { return LT; }
+">"             { return GT; }
+"="             { return ASSIGN; }
+"+"             { return ADD; }
+"-"             { return SUB; }
+"*"             { return MUL; }
+"/"             { return DIV; }
+"&"             { return ADDR; }
+
+";"             { return ';'; }
+","             { return ','; }
+":"             { return ':'; }
+"("             { return '('; }
+")"             { return ')'; }
+"["             { return '['; }
+"]"             { return ']'; }
+"|"             { return EPIPE; }
+
+{ID}            { yylval.str = strdup(yytext); return IDENTIFIER; }
+{DIGIT}+        { yylval.str = strdup(yytext); return INT_LITERAL; }
+{DIGIT}+"."{DIGIT}+([Ee][+-]?{DIGIT}+)?  { yylval.str = strdup(yytext); return REAL_LITERAL; }
+\'([^\\\n\'])\'  { yylval.str = strdup(yytext); return CHAR_LITERAL; }
+\"([^\"\n]*)\"   { yylval.str = strdup(yytext); return STRING_LITERAL; }
+
+[ \t\r\n]+      { /* ignore whitespace */ }
+
+"#->"([^<]|"<"[^-]|"<-"[^#])*"<-#"  { /* ignore comment */ }
+
+.               { printf("Unknown character: %s\n", yytext); exit(1); }
+
+%%
