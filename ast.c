@@ -85,15 +85,12 @@ void print_ast(Node* node, int depth) {
         return;
 
     
-    // Special case for CODE node
     if (strcmp(node->name, "CODE") == 0) {
         printf("(CODE\n");
         
         if (node->child_count > 0 && strcmp(node->children[0]->name, "FUNC") == 0) {
-            // Handle FUNC node specially
             print_functions(node->children[0], 1);
         } else {
-            // Print regular children
             for (int i = 0; i < node->child_count; i++) {
                 print_ast(node->children[i], depth + 1);
             }
@@ -103,7 +100,6 @@ void print_ast(Node* node, int depth) {
         return;
     }
     
-    // Special case for operators like +, -, *, etc.
     if (node->child_count == 2 && (
         strcmp(node->name, "+") == 0 || 
         strcmp(node->name, "-") == 0 ||
@@ -118,15 +114,12 @@ void print_ast(Node* node, int depth) {
         strcmp(node->name, "AND") == 0 ||
         strcmp(node->name, "OR") == 0)) {
         
-        // Print indentation
         for (int i = 0; i < depth; i++)
             printf("  ");
         
         if (node->children[0]->child_count == 0 && node->children[1]->child_count == 0) {
-            // Both operands are simple
             printf("(%s %s %s)\n", node->name, node->children[0]->name, node->children[1]->name);
         } else if (node->children[1]->child_count == 0) {
-            // First operand is complex, second is simple
             printf("(%s\n", node->name);
             print_ast(node->children[0], depth + 1);
             for (int i = 0; i < depth + 1; i++)
@@ -136,7 +129,6 @@ void print_ast(Node* node, int depth) {
                 printf("  ");
             printf(")\n");
         } else {
-            // Both operands are complex or other cases
             printf("(%s\n", node->name);
             for (int i = 0; i < node->child_count; i++) {
                 print_ast(node->children[i], depth + 1);
@@ -148,9 +140,7 @@ void print_ast(Node* node, int depth) {
         return;
     }
     
-    // Special case for assignment
     if (node->child_count == 2 && strcmp(node->name, "=") == 0 && node->children[0]->child_count == 0) {
-        // Print indentation
         for (int i = 0; i < depth; i++)
             printf("  ");
         
@@ -162,10 +152,8 @@ void print_ast(Node* node, int depth) {
         return;
     }
     
-    // Special case for RET with single simple operand
     if (node->child_count == 1 && node->children[0]->child_count == 0 && 
         strcmp(node->name, "RET") == 0) {
-        // Print indentation
         for (int i = 0; i < depth; i++)
             printf("  ");
         
@@ -173,7 +161,6 @@ void print_ast(Node* node, int depth) {
         return;
     }
     
-    // Regular node printing with indentation
     for (int i = 0; i < depth; i++)
         printf("  ");
     
@@ -191,7 +178,6 @@ void print_ast(Node* node, int depth) {
         print_ast(node->children[i], depth + 1);
     }
     
-    // Close the node with indentation
     for (int i = 0; i < depth; i++)
         printf("  ");
     

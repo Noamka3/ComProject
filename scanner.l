@@ -27,6 +27,7 @@ ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 "for"           { return FOR; }
 "do"            { return DO; }
 "var"           { return VAR; }
+"type"          { return TYPE; }
 "begin"         { return BEGIN_T; }
 "end"           { return END_T; }
 "call"          { return CALL; }
@@ -65,6 +66,9 @@ ID          ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 ":"             { return ':'; }
 "("             { return '('; }
 ")"             { return ')'; }
+"["             { return '['; }
+"]"             { return ']'; }
+"|"             { return EPIPE; }
 
 {ID}            { yylval.str = strdup(yytext); return IDENTIFIER; }
 {DIGIT}+        { yylval.str = strdup(yytext); return INT_LITERAL; }

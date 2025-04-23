@@ -70,36 +70,37 @@ extern int yydebug;
     NULL_T = 271,                  /* NULL_T  */
     TRUE = 272,                    /* TRUE  */
     FALSE = 273,                   /* FALSE  */
-    INT = 274,                     /* INT  */
-    REAL = 275,                    /* REAL  */
-    CHAR = 276,                    /* CHAR  */
-    BOOL = 277,                    /* BOOL  */
-    STRING = 278,                  /* STRING  */
-    INT_PTR = 279,                 /* INT_PTR  */
-    REAL_PTR = 280,                /* REAL_PTR  */
-    CHAR_PTR = 281,                /* CHAR_PTR  */
-    AND = 282,                     /* AND  */
-    OR = 283,                      /* OR  */
-    NOT = 284,                     /* NOT  */
-    EQ = 285,                      /* EQ  */
-    NE = 286,                      /* NE  */
-    LE = 287,                      /* LE  */
-    GE = 288,                      /* GE  */
-    LT = 289,                      /* LT  */
-    GT = 290,                      /* GT  */
-    ASSIGN = 291,                  /* ASSIGN  */
-    ADD = 292,                     /* ADD  */
-    SUB = 293,                     /* SUB  */
-    MUL = 294,                     /* MUL  */
-    DIV = 295,                     /* DIV  */
-    ADDR = 296,                    /* ADDR  */
-    DEREF = 297,                   /* DEREF  */
-    IDENTIFIER = 298,              /* IDENTIFIER  */
-    INT_LITERAL = 299,             /* INT_LITERAL  */
-    REAL_LITERAL = 300,            /* REAL_LITERAL  */
-    CHAR_LITERAL = 301,            /* CHAR_LITERAL  */
-    STRING_LITERAL = 302,          /* STRING_LITERAL  */
-    LOWER_THAN_ELSE = 303          /* LOWER_THAN_ELSE  */
+    TYPE = 274,                    /* TYPE  */
+    INT = 275,                     /* INT  */
+    REAL = 276,                    /* REAL  */
+    CHAR = 277,                    /* CHAR  */
+    BOOL = 278,                    /* BOOL  */
+    STRING = 279,                  /* STRING  */
+    INT_PTR = 280,                 /* INT_PTR  */
+    REAL_PTR = 281,                /* REAL_PTR  */
+    CHAR_PTR = 282,                /* CHAR_PTR  */
+    AND = 283,                     /* AND  */
+    OR = 284,                      /* OR  */
+    NOT = 285,                     /* NOT  */
+    EQ = 286,                      /* EQ  */
+    NE = 287,                      /* NE  */
+    LE = 288,                      /* LE  */
+    GE = 289,                      /* GE  */
+    LT = 290,                      /* LT  */
+    GT = 291,                      /* GT  */
+    ASSIGN = 292,                  /* ASSIGN  */
+    ADD = 293,                     /* ADD  */
+    SUB = 294,                     /* SUB  */
+    MUL = 295,                     /* MUL  */
+    DIV = 296,                     /* DIV  */
+    ADDR = 297,                    /* ADDR  */
+    DEREF = 298,                   /* DEREF  */
+    IDENTIFIER = 299,              /* IDENTIFIER  */
+    INT_LITERAL = 300,             /* INT_LITERAL  */
+    REAL_LITERAL = 301,            /* REAL_LITERAL  */
+    CHAR_LITERAL = 302,            /* CHAR_LITERAL  */
+    STRING_LITERAL = 303,          /* STRING_LITERAL  */
+    LOWER_THAN_ELSE = 304          /* LOWER_THAN_ELSE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -113,7 +114,7 @@ union YYSTYPE
     char* str;
     Node* node;
 
-#line 117 "parser.tab.h"
+#line 118 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -16,16 +16,15 @@ Node* root;
     Node* node;
 }
 
-%token DEF RETURNS RETURN IF ELSE ELIF WHILE FOR DO VAR BEGIN_T END_T CALL NULL_T TRUE FALSE
+%token DEF RETURNS RETURN IF ELSE ELIF WHILE FOR DO VAR BEGIN_T END_T CALL NULL_T TRUE FALSE TYPE
 %token INT REAL CHAR BOOL STRING INT_PTR REAL_PTR CHAR_PTR
 %token AND OR NOT
 %token EQ NE LE GE LT GT ASSIGN
-%token ADD SUB MUL DIV ADDR DEREF
+%token ADD SUB MUL DIV ADDR DEREF EPIPE
 %token <str> IDENTIFIER INT_LITERAL REAL_LITERAL CHAR_LITERAL STRING_LITERAL
 
-%type <node> program funcs func parameters parameter ret_type type var_decls var_decl stmts stmt expr args block
+%type <node> program funcs func parameters parameter ret_type type var_decls optional_var_list var_decl_list var_single_decl string_decl_list string_decl stmts stmt expr args block inner_block
 
-/* Define operator precedence to reduce conflicts */
 %left OR
 %left AND
 %left EQ NE
@@ -42,9 +41,7 @@ program : funcs { root = create_node("CODE", 1, $1); }
 ;
 
 funcs : func { $$ = $1; }
-      | func funcs { 
-          $$ = create_node("FUNC", 2, $1, $2);
-      }
+      | func funcs { $$ = create_node("FUNC", 2, $1, $2); }
       | /* empty */ { $$ = NULL; }
 ;
 
@@ -52,13 +49,7 @@ func
   : DEF IDENTIFIER '(' parameters ')' ':' RETURNS ret_type var_decls block
 {
     Node* ret = create_node("RET", 1, $8);
-    Node* body;
-
-    if (strcmp($10->name, "BLOCK") == 0 && $10->child_count == 1)
-        body = create_node("BODY", 1, $10->children[0]);
-    else
-        body = create_node("BODY", 1, $10);
-
+    Node* body = create_node("BODY", 1, $10);
     if ($9->child_count == 0)
         $$ = create_node($2, 3, $4, ret, body);
     else
@@ -67,13 +58,7 @@ func
 | DEF IDENTIFIER '(' parameters ')' ':' var_decls block
 {
     Node* ret = create_node("RET NONE", 0);
-    Node* body;
-
-    if (strcmp($8->name, "BLOCK") == 0 && $8->child_count == 1)
-        body = create_node("BODY", 1, $8->children[0]);
-    else
-        body = create_node("BODY", 1, $8);
-
+    Node* body = create_node("BODY", 1, $8);
     if ($7->child_count == 0)
         $$ = create_node($2, 3, $4, ret, body);
     else
@@ -118,35 +103,98 @@ type : INT { $$ = create_node("INT", 0); }
      | INT_PTR { $$ = create_node("INT_PTR", 0); }
      | REAL_PTR { $$ = create_node("REAL_PTR", 0); }
      | CHAR_PTR { $$ = create_node("CHAR_PTR", 0); }
+     | STRING { $$ = create_node("STRING", 0); }
 ;
 
-var_decls : var_decl var_decls { $$ = create_node("BLOCK", 2, $1, $2); }
+var_decls : VAR optional_var_list { $$ = $2; }
           | /* empty */ { $$ = create_node("BLOCK", 0); }
 ;
 
-var_decl : VAR type ':' IDENTIFIER ';'
-{
+optional_var_list
+  : var_decl_list { $$ = $1; }
+  | /* empty */   { $$ = create_node("BLOCK", 0); }
+;
+
+var_decl_list : var_decl_list var_single_decl {
+    $$ = create_node("BLOCK", 2, $1, $2);
+}
+| var_single_decl { $$ = create_node("BLOCK", 1, $1); }
+;
+
+var_single_decl : TYPE type ':' IDENTIFIER ';' {
     char temp[100];
     sprintf(temp, "%s %s", $2->name, $4);
     $$ = create_node(temp, 0);
 }
+| TYPE type ':' string_decl_list ';' {
+    $$ = $4;
+}
 ;
 
-block 
-  : BEGIN_T stmts END_T 
-    {
-      if (strcmp($2->name, "BLOCK") == 0)
+string_decl_list
+  : string_decl_list ',' string_decl {
+      Node* block = create_node("BLOCK", $1->child_count + 1);
+      for (int i = 0; i < $1->child_count; ++i)
+          block->children[i] = $1->children[i];
+      block->children[$1->child_count] = $3;
+      $$ = block;
+  }
+  | string_decl {
+      $$ = create_node("BLOCK", 1, $1);
+  }
+;
+
+
+
+string_decl
+  : IDENTIFIER '[' INT_LITERAL ']' {
+      char temp[100];
+      sprintf(temp, "STR %s[%s]", $1, $3);
+      $$ = create_node(temp, 0);
+  }
+  | IDENTIFIER '[' INT_LITERAL ']' ':' STRING_LITERAL {
+      char temp[100];
+      sprintf(temp, "STR %s[%s]:%s", $1, $3, $5);
+      $$ = create_node(temp, 0);
+  }
+;
+
+block
+  : BEGIN_T optional_var_list stmts END_T {
+      if ($2->child_count == 0 && $3->child_count == 0)
+          $$ = create_node("BLOCK", 0);
+      else if ($2->child_count == 0)
+          $$ = create_node("BLOCK", 1, $3);
+      else if ($3->child_count == 0)
+          $$ = create_node("BLOCK", 1, $2);
+      else
+          $$ = create_node("BLOCK", 2, $2, $3);
+  }
+  | BEGIN_T optional_var_list END_T {
+      $$ = create_node("BLOCK", 1, $2);
+  }
+  | BEGIN_T END_T {
+      $$ = create_node("BLOCK", 0);
+  }
+;
+
+
+inner_block 
+  : funcs stmts {
+      if ($2->child_count == 0)
+          $$ = $1;
+      else if ($1->child_count == 0)
           $$ = $2;
       else
-          $$ = create_node("BLOCK", 1, $2);
-    }
-  | BEGIN_T END_T 
-    { $$ = create_node("BLOCK", 0); }
+          $$ = create_node("BLOCK", 2, $1, $2);
+  }
+  | funcs { $$ = $1; }
+  | stmts { $$ = $1; }
+  | /* empty */ { $$ = create_node("BLOCK", 0); }
 ;
 
-stmts 
-  : stmt                       { $$ = $1; }
-  | stmt stmts                {
+stmts : stmt { $$ = $1; }
+      | stmt stmts {
         if (strcmp($2->name, "BLOCK") == 0) {
             Node* merged = create_node("BLOCK", 1 + $2->child_count);
             merged->children[0] = $1;
@@ -156,27 +204,16 @@ stmts
         } else {
             $$ = create_node("BLOCK", 2, $1, $2);
         }
-  }
+      }
 ;
-
 
 stmt : IDENTIFIER ASSIGN expr ';' { $$ = create_node("=", 2, create_node($1, 0), $3); }
      | MUL IDENTIFIER ASSIGN expr ';' { $$ = create_node("= *", 2, create_node($2, 0), $4); }
-     | RETURN expr ';' { 
-         if ($2->child_count == 0) {
-             char temp[100];
-             sprintf(temp, "RET %s", $2->name);
-             $$ = create_node(temp, 0);
-         } else {
-             $$ = create_node("RET", 1, $2);
-         }
-     }
-     | CALL IDENTIFIER '(' args ')' ';' { $$ = create_node("CALL", 2, create_node($2, 0), $4); }
+     | RETURN expr ';' { $$ = create_node("RET", 1, $2); }
+     | IDENTIFIER '(' args ')' ';' { $$ = create_node("CALL", 2, create_node($1, 0), $3); }
      | IF expr ':' block ELSE ':' block { $$ = create_node("IF-ELSE", 3, $2, $4, $7); }
      | IF expr ':' block %prec LOWER_THAN_ELSE { $$ = create_node("IF", 2, $2, $4); }
      | WHILE expr ':' block { $$ = create_node("WHILE", 2, $2, $4); }
-     | FOR '(' stmt expr ';' stmt ')' ':' block { $$ = create_node("FOR", 4, $3, $4, $6, $9); }
-     | DO ':' block WHILE ':' expr ';' { $$ = create_node("DO-WHILE", 2, $3, $6); }
      | block { $$ = $1; }
 ;
 
@@ -202,6 +239,7 @@ expr : expr ADD expr { $$ = create_node("+", 2, $1, $3); }
      | MUL IDENTIFIER { $$ = create_node("*", 1, create_node($2, 0)); }
      | ADDR IDENTIFIER { $$ = create_node("&", 1, create_node($2, 0)); }
      | IDENTIFIER { $$ = create_node($1, 0); }
+     | IDENTIFIER '(' args ')' { $$ = create_node("CALL", 2, create_node($1, 0), $3); }
      | INT_LITERAL { $$ = create_node($1, 0); }
      | REAL_LITERAL { $$ = create_node($1, 0); }
      | CHAR_LITERAL { $$ = create_node($1, 0); }
@@ -209,6 +247,7 @@ expr : expr ADD expr { $$ = create_node("+", 2, $1, $3); }
      | TRUE { $$ = create_node("TRUE", 0); }
      | FALSE { $$ = create_node("FALSE", 0); }
      | NULL_T { $$ = create_node("NULL", 0); }
+     | EPIPE IDENTIFIER EPIPE { $$ = create_node("LEN", 1, create_node($2, 0)); }
 ;
 
 %%
